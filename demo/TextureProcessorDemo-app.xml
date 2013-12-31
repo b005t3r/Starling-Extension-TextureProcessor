@@ -90,10 +90,10 @@
         <!--<maxSize></maxSize>-->
 
         <!-- The aspect ratio of the app ("portrait" or "landscape" or "any"). Optional. Mobile only. Default is the natural orientation of the device -->
-        <!--<aspectRatio></aspectRatio>-->
+        <aspectRatio>any</aspectRatio>
 
         <!-- Whether the app will begin auto-orienting on launch. Optional. Mobile only. Default false -->
-        <!--<autoOrients></autoOrients>-->
+        <autoOrients>true</autoOrients>
 
         <!-- Whether the app launches in full screen. Optional. Mobile only. Default false -->
         <!--<fullScreen></fullScreen>-->

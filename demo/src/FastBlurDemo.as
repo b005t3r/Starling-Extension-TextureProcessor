@@ -51,7 +51,7 @@ public class FastBlurDemo extends Sprite {
         _blurShader.strength = 0;
 
         var tween:Tween = new Tween(_blurShader, 5);
-        tween.animate("strength", 25);
+        tween.animate("strength", 30);
         tween.repeatCount = 0;
         tween.repeatDelay = 1;
         tween.reverse = true;

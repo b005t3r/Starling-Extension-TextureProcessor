@@ -3,7 +3,7 @@
   <component name="FlexBuildConfigurationManager" active="TextureProcessorDemo">
     <configurations>
       <configuration name="TextureProcessorDemo" target-platform="Desktop" pure-as="true" main-class="Main" output-file="TextureProcessorDemo.swf" output-folder="$MODULE_DIR$/out">
-        <dependencies target-player="11.8">
+        <dependencies>
           <entries>
             <entry module-name="Starling" build-configuration-name="Starling">
               <dependency linkage="Merged" />
