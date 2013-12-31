@@ -18,7 +18,7 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
     public static const VERTICAL:String     = "vertical";
 
     private static const DEFAULT_FIRST_PASS_STRENGTH:Number                 = 1.25;
-    private static const DEFAULT_STRENGTH_INCREASE_PER_PASS_RATIO:Number    = 3.0;
+    private static const DEFAULT_STRENGTH_INCREASE_PER_PASS_RATIO:Number    = 2.5;
 
     private static var _verticalOffsets:Vector.<Number>     = new <Number>[0.0, 1.3846153846, 0.0, 3.2307692308];
     private static var _horizontalOffsets:Vector.<Number>   = new <Number>[1.3846153846, 0.0, 3.2307692308, 0.0];
