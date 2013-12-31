@@ -221,8 +221,6 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
         var multiplier:Number, str:Number = _strengths[_pass];
         var i:int, count:int = 4;
 
-        trace("str: " + str);
-
         if(type == HORIZONTAL) {
             multiplier = _pixelWidth * str;
 
@@ -235,6 +233,8 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
             for(i = 0; i < count; i++)
                 _offsets[i] = _verticalOffsets[i] * multiplier;
         }
+
+        //trace("str: " + str);
     }
 
     private function updateStrengths():void {
@@ -257,7 +257,7 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
 
         _strengths.sort(function (a:Number, b:Number):Number { return b - a; });
 
-        trace("strengths: [" + _strengths + "], total: " + _strength);
+        //trace("strengths: [" + _strengths + "], total: " + _strength);
     }
 }
 }
