@@ -22,6 +22,7 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
 
     private static var _verticalOffsets:Vector.<Number>     = new <Number>[0.0, 1.3846153846, 0.0, 3.2307692308];
     private static var _horizontalOffsets:Vector.<Number>   = new <Number>[1.3846153846, 0.0, 3.2307692308, 0.0];
+    private static var _weights:Vector.<Number>             = new <Number>[0.2270270270, 0.3162162162, 0.0702702703, 0];
 
     private var _type:String                    = HORIZONTAL;
     private var _pass:int                       = 0;
@@ -36,7 +37,6 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
     private var _strengths:Vector.<Number>      = new <Number>[];
     private var _offsets:Vector.<Number>        = new <Number>[0, 0, 0, 0];
     private var _uv:Vector.<Number>             = new <Number>[0, 1, 0, 1];
-    private var _weights:Vector.<Number>        = new <Number>[0.2270270270, 0.3162162162, 0.0702702703, 0];
 
     public function get type():String { return _type; }
     public function set type(value:String):void {
