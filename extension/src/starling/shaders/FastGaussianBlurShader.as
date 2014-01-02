@@ -29,14 +29,13 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
     private var _strength:Number                = Number.NaN;
     private var _firstPassStrength:Number       = DEFAULT_FIRST_PASS_STRENGTH;
     private var _strengthIncreaseRatio:Number   = DEFAULT_STRENGTH_INCREASE_PER_PASS_RATIO;
-    private var _pixelWidth:Number              = Number.NaN;
-    private var _pixelHeight:Number             = Number.NaN;
     private var _paramsDirty:Boolean            = true;
     private var _strengthsDirty:Boolean         = true;
 
     private var _strengths:Vector.<Number>      = new <Number>[];
     private var _offsets:Vector.<Number>        = new <Number>[0, 0, 0, 0];
     private var _uv:Vector.<Number>             = new <Number>[0, 1, 0, 1];
+    private var _pixelSize:Vector.<Number>      = new <Number>[Number.NaN, Number.NaN, Number.NaN, Number.NaN];
 
     public function get type():String { return _type; }
     public function set type(value:String):void {
@@ -86,21 +85,23 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
         _paramsDirty = true;
     }
 
-    public function get pixelWidth():Number { return _pixelWidth; }
+    public function get pixelWidth():Number { return _pixelSize[0]; }
     public function set pixelWidth(value:Number):void {
-        if(value == _pixelWidth)
+        if(value == _pixelSize[0])
             return;
 
-        _pixelWidth = value;
+        _pixelSize[0] = value;
+        _pixelSize[2] = value / 2;
         _paramsDirty = true;
     }
 
-    public function get pixelHeight():Number { return _pixelHeight; }
+    public function get pixelHeight():Number { return _pixelSize[1]; }
     public function set pixelHeight(value:Number):void {
-        if(value == _pixelHeight)
+        if(value == _pixelSize[1])
             return;
 
-        _pixelHeight = value;
+        _pixelSize[1] = value;
+        _pixelSize[3] = value / 2;
         _paramsDirty = true;
     }
 
@@ -131,8 +132,10 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
             updateParameters();
 
         context.setProgramConstantsFromVector(Context3DProgramType.VERTEX,   4, _offsets);
+
         context.setProgramConstantsFromVector(Context3DProgramType.FRAGMENT, 0, _weights);
         context.setProgramConstantsFromVector(Context3DProgramType.FRAGMENT, 1, _uv);
+        context.setProgramConstantsFromVector(Context3DProgramType.FRAGMENT, 2, _pixelSize);
     }
 
     public function deactivate(context:Context3D):void {
@@ -153,54 +156,56 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
     }
 
     override protected function _fragmentShader():void {
-        var uvCenter:IRegister      = VARYING[0];
-        var uvMinusTwo:IRegister    = VARYING[1];
-        var uvMinusOne:IRegister    = VARYING[2];
-        var uvPlusOne:IRegister     = VARYING[3];
-        var uvPlusTwo:IRegister     = VARYING[4];
-        var uv:IRegister            = TEMP[7];
-        var weightCenter:IComponent = CONST[0].x;
-        var weightOne:IComponent    = CONST[0].y;
-        var weightTwo:IComponent    = CONST[0].z;
-        var minU:IComponent         = CONST[1].x;
-        var maxU:IComponent         = CONST[1].y;
-        var minV:IComponent         = CONST[1].z;
-        var maxV:IComponent         = CONST[1].w;
-        var colorCenter:IRegister   = TEMP[0];
-        var colorMinusTwo:IRegister = TEMP[1];
-        var colorMinusOne:IRegister = TEMP[2];
-        var colorPlusOne:IRegister  = TEMP[3];
-        var colorPlusTwo:IRegister  = TEMP[4];
-        var outputColor:IRegister   = TEMP[5];
-        var textureFlags:Array      = [TextureFlag.TYPE_2D, TextureFlag.MODE_CLAMP, TextureFlag.FILTER_LINEAR, TextureFlag.MIP_NO];
+        var uvCenter:IRegister          = VARYING[0];
+        var uvMinusTwo:IRegister        = VARYING[1];
+        var uvMinusOne:IRegister        = VARYING[2];
+        var uvPlusOne:IRegister         = VARYING[3];
+        var uvPlusTwo:IRegister         = VARYING[4];
+        var uv:IRegister                = TEMP[7];
+        var weightCenter:IComponent     = CONST[0].x;
+        var weightOne:IComponent        = CONST[0].y;
+        var weightTwo:IComponent        = CONST[0].z;
+        var minU:IComponent             = CONST[1].x;
+        var maxU:IComponent             = CONST[1].y;
+        var minV:IComponent             = CONST[1].z;
+        var maxV:IComponent             = CONST[1].w;
+        var halfPixelWidth:IComponent   = CONST[2].z;
+        var halfPixelHeight:IComponent  = CONST[2].w;
+        var colorCenter:IRegister       = TEMP[0];
+        var colorMinusTwo:IRegister     = TEMP[1];
+        var colorMinusOne:IRegister     = TEMP[2];
+        var colorPlusOne:IRegister      = TEMP[3];
+        var colorPlusTwo:IRegister      = TEMP[4];
+        var outputColor:IRegister       = TEMP[5];
+        var textureFlags:Array          = [TextureFlag.TYPE_2D, TextureFlag.MODE_CLAMP, TextureFlag.FILTER_LINEAR, TextureFlag.MIP_NO];
 
         sampleTexture(colorCenter, uvCenter, SAMPLER[0], textureFlags);
         multiply(outputColor, colorCenter, weightCenter);
 
         move(uv, uvMinusTwo);
-        Utils.clamp(uv.x, uv.x, minU, maxU);
-        Utils.clamp(uv.y, uv.y, minV, maxV);
+        ShaderUtil.clamp(uv.x, minU, maxU, halfPixelWidth, TEMP[6]);
+        ShaderUtil.clamp(uv.y, minV, maxV, halfPixelHeight, TEMP[6]);
         sampleTexture(colorMinusTwo, uv, SAMPLER[0], textureFlags);
         multiply(colorMinusTwo, colorMinusTwo, weightTwo);
         add(outputColor, outputColor, colorMinusTwo);
 
         move(uv, uvMinusOne);
-        Utils.clamp(uv.x, uv.x, minU, maxU);
-        Utils.clamp(uv.y, uv.y, minV, maxV);
+        ShaderUtil.clamp(uv.x, minU, maxU, halfPixelWidth, TEMP[6]);
+        ShaderUtil.clamp(uv.y, minV, maxV, halfPixelHeight, TEMP[6]);
         sampleTexture(colorMinusOne, uv, SAMPLER[0], textureFlags);
         multiply(colorMinusOne, colorMinusOne, weightOne);
         add(outputColor, outputColor, colorMinusOne);
 
         move(uv, uvPlusOne);
-        Utils.clamp(uv.x, uv.x, minU, maxU);
-        Utils.clamp(uv.y, uv.y, minV, maxV);
+        ShaderUtil.clamp(uv.x, minU, maxU, halfPixelWidth, TEMP[6]);
+        ShaderUtil.clamp(uv.y, minV, maxV, halfPixelHeight, TEMP[6]);
         sampleTexture(colorPlusOne, uv, SAMPLER[0], textureFlags);
         multiply(colorPlusOne, colorPlusOne, weightOne);
         add(outputColor, outputColor, colorPlusOne);
 
         move(uv, uvPlusTwo);
-        Utils.clamp(uv.x, uv.x, minU, maxU);
-        Utils.clamp(uv.y, uv.y, minV, maxV);
+        ShaderUtil.clamp(uv.x, minU, maxU, halfPixelWidth, TEMP[6]);
+        ShaderUtil.clamp(uv.y, minV, maxV, halfPixelHeight, TEMP[6]);
         sampleTexture(colorPlusTwo, uv, SAMPLER[0], textureFlags);
         multiply(colorPlusTwo, colorPlusTwo, weightTwo);
         add(outputColor, outputColor, colorPlusTwo);
@@ -222,13 +227,13 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
         var i:int, count:int = 4;
 
         if(type == HORIZONTAL) {
-            multiplier = _pixelWidth * str;
+            multiplier = pixelWidth * str;
 
             for(i = 0; i < count; i++)
                 _offsets[i] = _horizontalOffsets[i] * multiplier;
         }
         else {
-            multiplier = _pixelHeight * str;
+            multiplier = pixelHeight * str;
 
             for(i = 0; i < count; i++)
                 _offsets[i] = _verticalOffsets[i] * multiplier;
