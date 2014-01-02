@@ -26,19 +26,13 @@ public class ShaderUtil extends EasierAGAL {
         add(value, value, min);
     }
 
-    /** Calculates distance from [0, 0]. Both x and y must be in [-1, 1]. */
-    public static function distance(value:IComponent, x:IComponent, y:IComponent, tempX:IComponent, tempY:IComponent, zero:IComponent, one:IComponent, half:IComponent):void {
+    /** Calculates distance from [0, 0]. */
+    public static function distance(value:IComponent, x:IComponent, y:IComponent, tempX:IComponent, tempY:IComponent):void {
         multiply(tempX, x, x);
         multiply(tempY, y, y);
 
         add(tempX, tempX, tempY);
-        squareRoot(tempX, tempX);
-
-        Utils.clamp(tempX, tempX, zero, one);
-        subtract(tempX, one, tempX);
-
-        multiply(tempX, half, tempX);
-        add(value, half, tempX);
+        squareRoot(value, tempX);
     }
 
     /** Convert UV in [min, max] to [-1, 1] range. */
