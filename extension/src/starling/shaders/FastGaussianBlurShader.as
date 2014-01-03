@@ -161,12 +161,6 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
 
         comment("Pass uv coordinates to fragment shader");
         move(uvCenter, ATTRIBUTE[1]);
-
-//        comment("pass 4 additional UVs for sampling neighbours, in order: -2, -1, +1, +2 pixels away");
-//        subtract(uvMinusTwo, ATTRIBUTE[1], CONST[4].zw);
-//        subtract(uvMinusOne, ATTRIBUTE[1], CONST[4].xy);
-//        add(uvPlusOne, ATTRIBUTE[1], CONST[4].xy);
-//        add(uvPlusTwo, ATTRIBUTE[1], CONST[4].zw);
     }
 
     override protected function _fragmentShader():void {
