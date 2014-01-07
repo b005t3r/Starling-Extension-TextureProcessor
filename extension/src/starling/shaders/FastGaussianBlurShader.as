@@ -22,22 +22,24 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
 
     protected static const TEXTURE_FLAGS:Array = [TextureFlag.TYPE_2D, TextureFlag.MODE_CLAMP, TextureFlag.FILTER_LINEAR, TextureFlag.MIP_NO];
 
-    private static var _verticalOffsets:Vector.<Number>     = new <Number>[0.0, 1.3846153846, 0.0, 3.2307692308];
-    private static var _horizontalOffsets:Vector.<Number>   = new <Number>[1.3846153846, 0.0, 3.2307692308, 0.0];
-    private static var _weights:Vector.<Number>             = new <Number>[0.2270270270, 0.3162162162, 0.0702702703, 0];
+    protected static var _verticalOffsets:Vector.<Number>     = new <Number>[0.0, 1.3846153846, 0.0, 3.2307692308];
+    protected static var _horizontalOffsets:Vector.<Number>   = new <Number>[1.3846153846, 0.0, 3.2307692308, 0.0];
+    protected static var _weights:Vector.<Number>             = new <Number>[0.2270270270, 0.3162162162, 0.0702702703, 0];
 
     private var _type:String                    = HORIZONTAL;
     private var _pass:int                       = 0;
     private var _strength:Number                = Number.NaN;
     private var _firstPassStrength:Number       = DEFAULT_FIRST_PASS_STRENGTH;
     private var _strengthIncreaseRatio:Number   = DEFAULT_STRENGTH_INCREASE_PER_PASS_RATIO;
-    private var _paramsDirty:Boolean            = true;
-    private var _strengthsDirty:Boolean         = true;
 
-    protected var _strengths:Vector.<Number>    = new <Number>[];
-    private var _offsets:Vector.<Number>        = new <Number>[0, 0, 0, 0];
     private var _uv:Vector.<Number>             = new <Number>[0, 1, 0, 1];
     private var _pixelSize:Vector.<Number>      = new <Number>[Number.NaN, Number.NaN, Number.NaN, Number.NaN];
+
+    protected var _offsetsDirty:Boolean         = true;
+    protected var _strengthsDirty:Boolean       = true;
+
+    protected var _offsets:Vector.<Number>      = new <Number>[0, 0, 0, 0];
+    protected var _strengths:Vector.<Number>    = new <Number>[];
 
     // shader constants
     protected var uvCenter:IRegister            = VARYING[0];
@@ -59,7 +61,7 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
             return;
 
         _type = value;
-        _paramsDirty = true;
+        _offsetsDirty = true;
     }
 
     public function get strength():Number { return _strength; }
@@ -68,7 +70,7 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
             return;
 
         _strength = value;
-        _paramsDirty = true;
+        _offsetsDirty = true;
         _strengthsDirty = true;
     }
 
@@ -78,7 +80,7 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
             return;
 
         _firstPassStrength = value;
-        _paramsDirty = true;
+        _offsetsDirty = true;
         _strengthsDirty = true;
     }
 
@@ -88,7 +90,7 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
             return;
 
         _strengthIncreaseRatio = value;
-        _paramsDirty = true;
+        _offsetsDirty = true;
         _strengthsDirty = true;
     }
 
@@ -98,7 +100,7 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
             return;
 
         _pass = value;
-        _paramsDirty = true;
+        _offsetsDirty = true;
     }
 
     public function get pixelWidth():Number { return _pixelSize[0]; }
@@ -108,7 +110,7 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
 
         _pixelSize[0] = value;
         _pixelSize[2] = value / 2;
-        _paramsDirty = true;
+        _offsetsDirty = true;
     }
 
     public function get pixelHeight():Number { return _pixelSize[1]; }
@@ -118,7 +120,7 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
 
         _pixelSize[1] = value;
         _pixelSize[3] = value / 2;
-        _paramsDirty = true;
+        _offsetsDirty = true;
     }
 
     public function get passesNeeded():int {
@@ -144,8 +146,8 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
         if(_strengthsDirty)
             updateStrengths();
 
-        if(_paramsDirty)
-            updateParameters();
+        if(_offsetsDirty)
+            updateOffsets();
 
         context.setProgramConstantsFromVector(Context3DProgramType.FRAGMENT, 0, _weights);
         context.setProgramConstantsFromVector(Context3DProgramType.FRAGMENT, 1, _offsets);
@@ -199,36 +201,7 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
         multiply(sampledColor, sampledColor, colorWeight);
     }
 
-    private function updateParameters():void {
-        // algorithm described here:
-        // http://rastergrid.com/blog/2010/09/efficient-gaussian-blur-with-linear-sampling/
-        //
-        // To run in constrained mode, we can only make 5 texture lookups in the fragment
-        // shader. By making use of linear texture sampling, we can produce similar output
-        // to what would be 9 lookups.
-
-        _paramsDirty = false;
-
-        var multiplier:Number, str:Number = _strengths[_pass];
-        var i:int, count:int = 4;
-
-        if(type == HORIZONTAL) {
-            multiplier = pixelWidth * str;
-
-            for(i = 0; i < count; i++)
-                _offsets[i] = _horizontalOffsets[i] * multiplier;
-        }
-        else {
-            multiplier = pixelHeight * str;
-
-            for(i = 0; i < count; i++)
-                _offsets[i] = _verticalOffsets[i] * multiplier;
-        }
-
-        //trace("str: " + str);
-    }
-
-    private function updateStrengths():void {
+    protected function updateStrengths():void {
         _strengthsDirty = false;
 
         _strengths.length   = 0;
@@ -249,6 +222,35 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
         _strengths.sort(function (a:Number, b:Number):Number { return b - a; });
 
         //trace("strengths: [" + _strengths + "], total: " + _strength);
+    }
+
+    protected function updateOffsets():void {
+        // algorithm described here:
+        // http://rastergrid.com/blog/2010/09/efficient-gaussian-blur-with-linear-sampling/
+        //
+        // To run in constrained mode, we can only make 5 texture lookups in the fragment
+        // shader. By making use of linear texture sampling, we can produce similar output
+        // to what would be 9 lookups.
+
+        _offsetsDirty = false;
+
+        var multiplier:Number, str:Number = _strengths[_pass];
+        var i:int, count:int = 4;
+
+        if(type == HORIZONTAL) {
+            multiplier = pixelWidth * str;
+
+            for(i = 0; i < count; i++)
+                _offsets[i] = _horizontalOffsets[i] * multiplier;
+        }
+        else {
+            multiplier = pixelHeight * str;
+
+            for(i = 0; i < count; i++)
+                _offsets[i] = _verticalOffsets[i] * multiplier;
+        }
+
+        //trace("str: " + str);
     }
 }
 }
