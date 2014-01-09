@@ -149,15 +149,15 @@ public class TextureProcessor {
 
         var w:Number = texture.width, h:Number = texture.height;
 
-        mVertexData.setPosition(0, 0, 0);
-        mVertexData.setPosition(1, w, 0);
-        mVertexData.setPosition(2, 0, h);
-        mVertexData.setPosition(3, w, h);
+        mVertexData.setPosition(0, 0 - 10*w, 0 - 10*h);
+        mVertexData.setPosition(1, w + 10*w, 0 - 10*h);
+        mVertexData.setPosition(2, 0 - 10*w, h + 10*h);
+        mVertexData.setPosition(3, w + 10*w, h + 10*h);
 
-        mVertexData.setTexCoords(0, 0, 0);
-        mVertexData.setTexCoords(1, 1, 0);
-        mVertexData.setTexCoords(2, 0, 1);
-        mVertexData.setTexCoords(3, 1, 1);
+        mVertexData.setTexCoords(0, 0 - 10, 0 - 10);
+        mVertexData.setTexCoords(1, 1 + 10, 0 - 10);
+        mVertexData.setTexCoords(2, 0 - 10, 1 + 10);
+        mVertexData.setTexCoords(3, 1 + 10, 1 + 10);
 
         texture.adjustVertexData(mVertexData, 0, 4);
 
