@@ -26,6 +26,7 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
     protected static var _horizontalOffsets:Vector.<Number>   = new <Number>[1.3846153846, 0.0, 3.2307692308, 0.0];
     protected static var _weights:Vector.<Number>             = new <Number>[0.2270270270, 0.3162162162, 0.0702702703, 0];
 
+    private var _useVertexUVRange:Boolean;
     private var _type:String                    = HORIZONTAL;
     private var _pass:int                       = 0;
     private var _strength:Number                = Number.NaN;
@@ -48,12 +49,23 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
     protected var weightTwo:IComponent          = CONST[0].z;
     protected var offsetOne:IField              = CONST[1].xy;
     protected var offsetTwo:IField              = CONST[1].zw;
-    protected var uMin:IComponent               = CONST[2].x;
-    protected var uMax:IComponent               = CONST[2].y;
-    protected var vMin:IComponent               = CONST[2].z;
-    protected var vMax:IComponent               = CONST[2].w;
-    protected var halfPixelWidth:IComponent     = CONST[3].z;
-    protected var halfPixelHeight:IComponent    = CONST[3].w;
+    protected var halfPixelWidth:IComponent     = CONST[2].z;
+    protected var halfPixelHeight:IComponent    = CONST[2].w;
+    protected var uMin:IComponent               = CONST[3].x;
+    protected var uMax:IComponent               = CONST[3].y;
+    protected var vMin:IComponent               = CONST[3].z;
+    protected var vMax:IComponent               = CONST[3].w;
+
+    public function FastGaussianBlurShader(useVertexUVRange:Boolean = true) {
+        _useVertexUVRange = useVertexUVRange;
+
+        if(_useVertexUVRange) {
+            uMin = VARYING[1].x;
+            uMax = VARYING[1].y;
+            vMin = VARYING[1].z;
+            vMax = VARYING[1].w;
+        }
+    }
 
     public function get type():String { return _type; }
     public function set type(value:String):void {
@@ -142,6 +154,9 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
     public function get maxV():Number { return _uv[3]; }
     public function set maxV(value:Number):void { _uv[3] = value; }
 
+    public function get useVertexUVRange():Boolean { return _useVertexUVRange; }
+    public function set useVertexUVRange(value:Boolean):void { _useVertexUVRange = value; }
+
     public function activate(context:Context3D):void {
         if(_strengthsDirty)
             updateStrengths();
@@ -151,8 +166,10 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
 
         context.setProgramConstantsFromVector(Context3DProgramType.FRAGMENT, 0, _weights);
         context.setProgramConstantsFromVector(Context3DProgramType.FRAGMENT, 1, _offsets);
-        context.setProgramConstantsFromVector(Context3DProgramType.FRAGMENT, 2, _uv);
-        context.setProgramConstantsFromVector(Context3DProgramType.FRAGMENT, 3, _pixelSize);
+        context.setProgramConstantsFromVector(Context3DProgramType.FRAGMENT, 2, _pixelSize);
+
+        if(_useVertexUVRange)
+            context.setProgramConstantsFromVector(Context3DProgramType.FRAGMENT, 3, _uv);
     }
 
     public function deactivate(context:Context3D):void { }
@@ -163,6 +180,11 @@ public class FastGaussianBlurShader extends EasierAGAL implements ITextureShader
 
         comment("Pass uv coordinates to fragment shader");
         move(uvCenter, ATTRIBUTE[1]);
+
+        if(_useVertexUVRange) {
+            comment("Pass minU, maxU, minV, maxV to fragment shader");
+            move(VARYING[1], ATTRIBUTE[2]);
+        }
     }
 
     override protected function _fragmentShader():void {

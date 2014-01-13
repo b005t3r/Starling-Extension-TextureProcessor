@@ -12,12 +12,15 @@ import flash.display3D.IndexBuffer3D;
 import flash.display3D.VertexBuffer3D;
 import flash.geom.Matrix;
 import flash.geom.Matrix3D;
+import flash.geom.Point;
 import flash.geom.Rectangle;
 
 import starling.core.RenderSupport;
 import starling.core.Starling;
 import starling.errors.MissingContextError;
 import starling.shaders.ITextureShader;
+import starling.utils.ExtendedVertexData;
+import starling.utils.ExtendedVertexData;
 import starling.utils.VertexData;
 
 public class TextureProcessor {
@@ -31,24 +34,27 @@ public class TextureProcessor {
     private var _shader:ITextureShader;
 
     // vertex data
-    private var mVertexData:VertexData;
+    private var mVertexData:ExtendedVertexData;
     private var mVertexBuffer:VertexBuffer3D;
 
     // index data
     private var mIndexData:Vector.<uint>;
     private var mIndexBuffer:IndexBuffer3D;
 
+    private var _passUVRangeInGeometry:Boolean = true;
+    private var _buffersDirty:Boolean = true;
+
     private var _renderSupport:RenderSupport = new RenderSupport();
 
-    public function TextureProcessor() {
-    }
+    public function TextureProcessor() { }
 
     public function get input():Texture { return _input; }
     public function set input(value:Texture):void {
         _input = value;
 
         createVertices(value);
-        createBuffers();
+
+        _buffersDirty = true;
     }
 
     public function get output():Texture { return _output; }
@@ -62,6 +68,16 @@ public class TextureProcessor {
             return;
 
         _shader = value;
+    }
+
+    public function get passUVRangeInGeometry():Boolean { return _passUVRangeInGeometry; }
+    public function set passUVRangeInGeometry(value:Boolean):void { _passUVRangeInGeometry = value; }
+
+    public function setUVRange(minU:Number, maxU:Number, minV:Number, maxV:Number):void {
+        mVertexData.setUVRange(0, minU, maxU, minV, maxV);
+        mVertexData.setUVRange(1, minU, maxU, minV, maxV);
+        mVertexData.setUVRange(2, minU, maxU, minV, maxV);
+        mVertexData.setUVRange(3, minU, maxU, minV, maxV);
     }
 
     public function swap():void {
@@ -83,6 +99,9 @@ public class TextureProcessor {
             throw new MissingContextError();
 
         var pma:Boolean = mVertexData.premultipliedAlpha;
+
+        if(_buffersDirty)
+            createBuffers();
 
         //sRenderAlpha[0] = sRenderAlpha[1] = sRenderAlpha[2] = pma ? alpha : 1.0;
         //sRenderAlpha[3] = alpha;
@@ -120,8 +139,11 @@ public class TextureProcessor {
 
         context.setTextureAt(0, _input.base); // fs0
 
-        context.setVertexBufferAt(0, mVertexBuffer, VertexData.POSITION_OFFSET, Context3DVertexBufferFormat.FLOAT_2); // va0
-        context.setVertexBufferAt(1, mVertexBuffer, VertexData.TEXCOORD_OFFSET, Context3DVertexBufferFormat.FLOAT_2); // va1
+        context.setVertexBufferAt(0, mVertexBuffer, VertexData.POSITION_OFFSET, Context3DVertexBufferFormat.FLOAT_2); // va0 - position
+        context.setVertexBufferAt(1, mVertexBuffer, VertexData.TEXCOORD_OFFSET, Context3DVertexBufferFormat.FLOAT_2); // va1 - UV
+
+        if(_passUVRangeInGeometry)
+            context.setVertexBufferAt(2, mVertexBuffer, ExtendedVertexData.UV_RANGE_OFFSET, Context3DVertexBufferFormat.FLOAT_4); // va2 - UV range
 
         // render
         _shader.activate(context);
@@ -133,6 +155,9 @@ public class TextureProcessor {
         context.setVertexBufferAt(0, null);
         context.setVertexBufferAt(1, null);
 
+        if(_passUVRangeInGeometry)
+            context.setVertexBufferAt(2, null);
+
         _renderSupport.renderTarget = null;
         _renderSupport.popClipRect();
     }
@@ -143,16 +168,16 @@ public class TextureProcessor {
 
         // create vertices
         if(mVertexData == null)
-            mVertexData = new VertexData(4, texture.premultipliedAlpha);
+            mVertexData = new ExtendedVertexData(4);
         else
             mVertexData.setPremultipliedAlpha(texture.premultipliedAlpha);
 
         var w:Number = texture.width, h:Number = texture.height;
 
-        mVertexData.setPosition(0, 0 - 10*w, 0 - 10*h);
-        mVertexData.setPosition(1, w + 10*w, 0 - 10*h);
-        mVertexData.setPosition(2, 0 - 10*w, h + 10*h);
-        mVertexData.setPosition(3, w + 10*w, h + 10*h);
+        mVertexData.setPosition(0, 0 - 10 * w, 0 - 10 * h);
+        mVertexData.setPosition(1, w + 10 * w, 0 - 10 * h);
+        mVertexData.setPosition(2, 0 - 10 * w, h + 10 * h);
+        mVertexData.setPosition(3, w + 10 * w, h + 10 * h);
 
         mVertexData.setTexCoords(0, 0 - 10, 0 - 10);
         mVertexData.setTexCoords(1, 1 + 10, 0 - 10);
@@ -174,6 +199,8 @@ public class TextureProcessor {
     private function createBuffers():void {
         var context:Context3D = Starling.context;
         if (context == null) throw new MissingContextError();
+
+        _buffersDirty = false;
 
         if (mVertexBuffer) mVertexBuffer.dispose();
         if (mIndexBuffer)  mIndexBuffer.dispose();

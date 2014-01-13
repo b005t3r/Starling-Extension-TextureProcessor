@@ -60,6 +60,7 @@ public class FastBlurDemo extends Sprite {
 
     private function onEnterFrame(event:Event):void {
         // render bird to tempA
+        _textureProcessor.passUVRangeInGeometry = false;
         _textureProcessor.input = _birdTexture;
         _textureProcessor.output = _tempTextureA;
         _textureProcessor.shader = _renderTextureShader;
@@ -69,6 +70,8 @@ public class FastBlurDemo extends Sprite {
         _textureProcessor.swap();
 
         // render blur using tempA and tempB
+        _textureProcessor.passUVRangeInGeometry = true;
+        _textureProcessor.setUVRange(0, 1, 0, 1);
         _textureProcessor.shader = _blurShader;
         _textureProcessor.output = _tempTextureB;
 

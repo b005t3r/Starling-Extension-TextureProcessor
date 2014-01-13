@@ -29,6 +29,10 @@ public class DistanceBlurShader extends FastGaussianBlurShader {
     protected var one:IComponent            = CONST[5].y;
     protected var two:IComponent            = CONST[5].z;
 
+    public function DistanceBlurShader(useVertexUVRange:Boolean = true) {
+        super(useVertexUVRange);
+    }
+
     public function get centerStrength():Number { return _centerStrength; }
     public function set centerStrength(value:Number):void {
         if(_centerStrength == value)
